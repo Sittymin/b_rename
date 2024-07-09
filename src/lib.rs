@@ -3,6 +3,6 @@ mod dir;
 mod error;
 mod file;
 
-pub use dir::{EditDir, InputDir, OrigDir};
-// pub use error::FileErr;
+pub use args::Args;
+pub use dir::InputDir;
 pub use file::File;

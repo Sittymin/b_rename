@@ -4,17 +4,17 @@ use std::{fmt::Display, path::PathBuf};
 
 #[derive(Debug)]
 pub enum FileError {
-    ExtError,
-    NameError,
-    PathError,
+    ExtError(String),
+    NameError(String),
+    PathError(String),
 }
 
 impl Display for FileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileError::ExtError => write!(f, "文件后缀错误"),
-            FileError::NameError => write!(f, "文件名错误"),
-            FileError::PathError => write!(f, "文件路径错误"),
+            FileError::ExtError(e) => write!(f, "文件后缀错误: {e}"),
+            FileError::NameError(e) => write!(f, "文件名错误: {e}"),
+            FileError::PathError(e) => write!(f, "文件路径错误: {e}"),
         }
     }
 }
