@@ -1,7 +1,7 @@
 use crate::error::FileError;
 
 use std::fmt::Display;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct File {
     // Will be modified
@@ -23,7 +23,7 @@ impl Display for File {
 impl File {
     pub fn new(path: PathBuf) -> Result<File, FileError> {
         let file_name = path
-            .file_name()
+            .file_stem()
             .and_then(|name| name.to_str())
             .ok_or_else(|| FileError::NameError("文件名获取失败 -> File::new".to_string()))?
             .to_string();
@@ -32,6 +32,7 @@ impl File {
             .extension()
             .and_then(|ext| ext.to_str())
             .map(|s| s.to_string())
+            // 没有扩展名是做以下处理
             .unwrap_or_else(|| {
                 // 如果没有扩展名，检查文件名是否以点开头
                 if file_name.starts_with('.') {
@@ -48,6 +49,29 @@ impl File {
             file_name,
             file_ext,
         })
+    }
+    pub fn get_file_name(&self) -> &String {
+        &self.file_name
+    }
+    pub fn get_file_ext(&self) -> &String {
+        &self.file_ext
+    }
+    pub fn get_file_path(&self) -> &Path {
+        Path::new(&self.full_path)
+    }
+    pub fn update_info(&mut self, new_file: PathBuf) {
+        self.full_path = new_file.to_path_buf();
+        // 双重后缀可能不好用 like "1.zst.tar"
+        self.file_name = new_file
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .map(|s| s.to_string())
+            .expect("文件名竟然含有非 Unicode 字符！");
+        self.file_ext = new_file
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|s| s.to_string())
+            .expect("文件后缀竟然含有非 Unicode 字符！")
     }
 }
 impl Clone for File {

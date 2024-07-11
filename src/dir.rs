@@ -1,4 +1,4 @@
-use crate::file::File;
+use crate::{file::File, rename::batch_rename};
 use std::{fmt, fs, io, path::PathBuf};
 
 struct BaseDir {
@@ -83,8 +83,26 @@ impl InputDir {
                 dir_name: modify_dir.dir_name.clone(),
             }
         } else {
-            // 否则，创建新的输出目录结构
-            create_output_dir(&output_dir_path)?
+            // 创建新的输出目录结构
+            let mut output_dir = create_output_dir(&output_dir_path)?;
+
+            // 确保输出目录存在
+            fs::create_dir_all(&output_dir.dir_path)?;
+
+            // 复制修改目录中的文件到输出目录
+            for file in &modify_dir.files {
+                // 以下 file_name 包含后缀
+                let file_name = format!("{}.{}", file.get_file_name(), file.get_file_ext());
+                let output_file_path = output_dir.dir_path.join(&file_name);
+                fs::copy(file.get_file_path(), &output_file_path)?;
+
+                // 创建新的 File 对象并添加到输出目录的文件列表中
+                let output_file = File::new(output_file_path)
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                output_dir.files.push(output_file);
+            }
+
+            output_dir
         };
 
         Ok(Self {
@@ -93,11 +111,14 @@ impl InputDir {
             output_dir,
         })
     }
+    pub fn output_rename(&mut self) {
+        batch_rename(&self.base_dir.files, &mut self.output_dir.files);
+    }
 }
 
 fn create_output_dir(path: &PathBuf) -> io::Result<OutputDir> {
     Ok(OutputDir {
-        files: read_dir(path)?,
+        files: Vec::new(),
         dir_path: path.clone(),
         dir_name: get_dir_name(path).ok_or_else(|| {
             io::Error::new(io::ErrorKind::InvalidInput, format!("无效的输出目录路径"))

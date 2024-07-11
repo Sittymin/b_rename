@@ -10,7 +10,7 @@ fn main() {
             process::exit(1);
         }
     };
-    let input_dir = match InputDir::new(args.base, args.modify, args.output) {
+    let mut input_dir = match InputDir::new(args.base, args.modify, args.output) {
         Ok(input_dir) => input_dir,
         Err(e) => {
             eprintln!("{e}");
@@ -18,4 +18,6 @@ fn main() {
         }
     };
     println!("{input_dir}");
+    // 重命名
+    input_dir.output_rename();
 }
