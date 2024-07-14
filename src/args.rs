@@ -55,25 +55,14 @@ impl Args {
             Err(_) => return Err(ArgsError::InputDirNotAccessible(raw_args.modify.clone())),
         }
 
-        let output = match raw_args.output {
-            Some(path) => path,
-            None => raw_args.modify.clone(),
+        let output = match &raw_args.output {
+            Some(path) if path != &raw_args.modify && path != &raw_args.base => {
+                // 创建目录, 如果存在不会有任何操作
+                create_dir_all(path).map_err(|_| ArgsError::OutputDirNotCreatable(path.clone()))?;
+                path.clone()
+            }
+            _ => raw_args.modify.clone(),
         };
-        match output.try_exists() {
-            Ok(true) => {
-                if !output.is_dir() {
-                    return Err(ArgsError::InvalidArgument(
-                        "输出路径不是一个目录".to_string(),
-                    ));
-                }
-            }
-            Ok(false) => {
-                // creat dir
-                create_dir_all(&output)
-                    .map_err(|_| ArgsError::OutputDirNotCreatable(output.clone()))?;
-            }
-            Err(_) => return Err(ArgsError::OutputDirNotFound(output.clone())),
-        }
 
         // test writable
         if !is_directory_writable(&output) {
