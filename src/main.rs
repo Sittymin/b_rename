@@ -17,7 +17,7 @@ fn main() {
             process::exit(1);
         }
     };
-    println!("{input_dir}");
+    // println!("{input_dir}");
     // 重命名
     input_dir.output_rename();
 }

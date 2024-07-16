@@ -24,8 +24,12 @@ pub struct File {
 impl File {
     pub fn new(path: PathBuf) -> Result<File, FileError> {
         let file_name = path
+            // 类似.gitignore的会返回全名
             .file_stem()
-            .ok_or(FileError::NameError("文件名读取失败".to_string()))?
+            .ok_or(FileError::NameError(format!(
+                "文件名读取失败: {}",
+                path.display()
+            )))?
             .to_os_string();
 
         let file_ext = match path.extension() {
