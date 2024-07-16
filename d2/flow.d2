@@ -1,11 +1,11 @@
 user: 用户输入 {
-	shape: person
+  shape: person
 }
 user -> cli
 cli: 用户输入内容 {
-	base
-	modify
-	output
+  base
+  modify
+  output
 }
 
 cli.base -> args_test.exists
@@ -13,45 +13,112 @@ cli.modify -> args_test.exists
 cli.output -> args_test.some
 
 args_test: 处理输入内容 {
-	exists: 测试是否存在 {
-		shape: diamond
-	}
-	exists -> is_dir
+  exists: 测试是否存在 {
+    shape: diamond
+  }
+  exists -> is_dir
 
-	is_dir: 测试是否是目录 {
-		shape: diamond
-	}
-	# output 部分
+  is_dir: 测试是否是目录 {
+    shape: diamond
+  }
+  # output 部分
 
-	some: 用户是否指定并且与modify和base目录不同 {
-		shape: diamond
-	}
-	some -> clone: 条件不成立 {
-		style.stroke: red
-	}
-	some -> create_or_use: 条件成立 {
-		style.stroke: green
-	}
-	create_or_use: 创建或直接使用目录
-	clone: 使用modify参数
-	create_or_use -> writable
-	clone -> writable
-	writable: 目录是否可写 {
-		shape: diamond
-	}
-	# 测试完成
-	is_dir -> _.data.base
-	is_dir -> _.data.modify
-	writable -> _.data.output
+  some: 用户是否指定并且与modify和base目录不同 {
+    shape: diamond
+  }
+  some -> clone: 条件不成立 {
+    style.stroke: "#f38ba8"
+  }
+  some -> create_or_use: 条件成立 {
+    style.stroke: "#a6e3a1"
+  }
+  create_or_use: 创建或直接使用目录
+  clone: 使用modify参数
+  create_or_use -> writable
+  clone -> writable
+  writable: 目录是否可写 {
+    shape: diamond
+  }
+  # 测试完成
+  is_dir -> _.data.base
+  is_dir -> _.data.modify
+  writable -> _.data.output
 }
 data: 内部使用参数 {
-	base: {
-		shape: cylinder
-	}
-	modify: {
-		shape: cylinder
-	}
-	output: {
-		shape: cylinder
-	}
+  base: {
+    shape: stored_data
+  }
+  modify: {
+    shape: stored_data
+  }
+  output: {
+    shape: stored_data
+  }
+}
+
+# 目录部分
+"dir.rs" {
+  InputDir {
+    shape: stored_data
+    BaseDir {
+      shape: stored_data
+      files
+      dir_path
+      dir_name
+    }
+    ModifyDir {
+      shape: stored_data
+      files
+      dir_path
+      dir_name
+    }
+    OutputDir {
+      shape: stored_data
+      files
+      dir_path
+      dir_name
+    }
+  }
+  _.data.base -> new.read_dir {
+    style.stroke: "#f38ba8"
+  }
+  _.data.base -> new."dir_path.clone" {
+    style.stroke: "#f38ba8"
+  }
+  _.data.base -> new.get_dir_name {
+    style.stroke: "#f38ba8"
+  }
+  _.data.modify -> new.read_dir {
+    style.stroke: "#a6e3a1"
+  }
+  _.data.modify -> new."dir_path.clone" {
+    style.stroke: "#a6e3a1"
+  }
+  _.data.modify -> new.get_dir_name {
+    style.stroke: "#a6e3a1"
+  }
+  _.data.output -> new.read_dir {
+    style.stroke: "#89b4fa"
+  }
+  new {
+    read_dir -> _.InputDir.BaseDir.files {
+      style.stroke: "#f38ba8"
+    }
+    read_dir -> _.InputDir.ModifyDir.files {
+      style.stroke: "#a6e3a1"
+    }
+    read_dir -> _.InputDir.OutputDir.files {
+      style.stroke: "#89b4fa"
+    }
+    read_dir {
+      shape: step
+    }
+    "dir_path.clone" {
+      shape: step
+    }
+    "dir_path.clone" -> get_dir_name
+    get_dir_name {
+      shape: step
+    }
+  }
 }

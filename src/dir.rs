@@ -1,26 +1,15 @@
 use crate::{file::File, rename::batch_rename};
 use std::{fmt, fs, io, path::PathBuf};
 
-struct BaseDir {
-    files: Vec<File>,
-    // not need to edit
-    dir_path: PathBuf,
-    dir_name: String,
-}
-struct ModifyDir {
-    files: Vec<File>,
-    dir_path: PathBuf,
-    dir_name: String,
-}
-struct OutputDir {
+struct Dir {
     files: Vec<File>,
     dir_path: PathBuf,
     dir_name: String,
 }
 pub struct InputDir {
-    base_dir: BaseDir,
-    modify_dir: ModifyDir,
-    output_dir: OutputDir,
+    base_dir: Dir,
+    modify_dir: Dir,
+    output_dir: Dir,
 }
 impl fmt::Display for InputDir {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -63,13 +52,13 @@ impl InputDir {
         modify_dir_path: PathBuf,
         output_dir_path: PathBuf,
     ) -> io::Result<Self> {
-        let base_dir = BaseDir {
+        let base_dir = Dir {
             files: read_dir(&base_dir_path)?,
             dir_path: base_dir_path.clone(),
             dir_name: get_dir_name(&base_dir_path)
                 .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "无效的基础目录路径"))?,
         };
-        let modify_dir = ModifyDir {
+        let modify_dir = Dir {
             files: read_dir(&modify_dir_path)?,
             dir_path: modify_dir_path.clone(),
             dir_name: get_dir_name(&modify_dir_path)
@@ -77,7 +66,7 @@ impl InputDir {
         };
         let output_dir = if are_same_directory(&modify_dir_path, &output_dir_path)? {
             // 如果修改目录和输出目录相同，直接使用修改目录的信息
-            OutputDir {
+            Dir {
                 files: modify_dir.files.clone(),
                 dir_path: modify_dir.dir_path.clone(),
                 dir_name: modify_dir.dir_name.clone(),
@@ -85,9 +74,6 @@ impl InputDir {
         } else {
             // 创建新的输出目录结构
             let mut output_dir = create_output_dir(&output_dir_path)?;
-
-            // 确保输出目录存在
-            fs::create_dir_all(&output_dir.dir_path)?;
 
             // 复制修改目录中的文件到输出目录
             for file in &modify_dir.files {
@@ -116,13 +102,20 @@ impl InputDir {
     }
 }
 
-fn create_output_dir(path: &PathBuf) -> io::Result<OutputDir> {
-    Ok(OutputDir {
+fn create_output_dir(path: &PathBuf) -> io::Result<Dir> {
+    Ok(Dir {
         files: Vec::new(),
         dir_path: path.clone(),
         dir_name: get_dir_name(path).ok_or_else(|| {
             io::Error::new(io::ErrorKind::InvalidInput, format!("无效的输出目录路径"))
         })?,
+    })
+}
+fn create_dir_struct(files: Vec<File>, dir_path: PathBuf, dir_name: String) -> io::Result<Dir> {
+    Ok(Dir {
+        files,
+        dir_path,
+        dir_name,
     })
 }
 
