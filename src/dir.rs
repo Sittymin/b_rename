@@ -8,7 +8,7 @@ struct Dir {
 }
 pub struct InputDir {
     base_dir: Dir,
-    modify_dir: Dir,
+    // modify_dir: Dir,
     output_dir: Dir,
 }
 // impl fmt::Display for InputDir {
@@ -87,7 +87,7 @@ impl InputDir {
 
         Ok(Self {
             base_dir,
-            modify_dir,
+            // modify_dir,
             output_dir,
         })
     }

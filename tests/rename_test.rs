@@ -37,6 +37,8 @@ fn test_files_rename() -> io::Result<()> {
         b_rename::InputDir::new(base_dir.clone(), modify_dir.clone(), output_dir.clone())?;
     input_dir.output_rename();
     assert!(output_dir.join("file1.ass").exists());
+    assert!(output_dir.join("file2.ass").exists());
+    assert!(output_dir.join("file3.ass").exists());
 
     clean_temp_dir(&base_dir)?;
     clean_temp_dir(&modify_dir)?;

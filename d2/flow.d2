@@ -1,58 +1,61 @@
 user: 用户输入 {
   shape: person
 }
-user -> cli
-cli: 用户输入内容 {
+user -> cli_arg
+cli_arg {
   base
   modify
   output
 }
 
-cli.base -> args_test.exists
-cli.modify -> args_test.exists
-cli.output -> args_test.some
+cli_arg.base -> "args.rs".args_new.exists
+cli_arg.modify -> "args.rs".args_new.exists
+cli_arg.output -> "args.rs".args_new.some
 
-args_test: 处理输入内容 {
-  exists: 测试是否存在 {
-    shape: diamond
-  }
-  exists -> is_dir
+"args.rs" {
+  args_new {
+    exists {
+      shape: diamond
+    }
+    exists -> is_dir
 
-  is_dir: 测试是否是目录 {
-    shape: diamond
-  }
-  # output 部分
+    is_dir {
+      shape: diamond
+    }
+    # output 部分
 
-  some: 用户是否指定并且与modify和base目录不同 {
-    shape: diamond
+    some: "Some(output) & !=modify & !=base" {
+      shape: diamond
+    }
+    some -> modify: No {
+      style.stroke: "#f38ba8"
+    }
+    some -> create_dir_all: Yes {
+      style.stroke: "#a6e3a1"
+    }
+    modify <-> _._.cli_arg.modify: Same {
+      style.stroke: "#a6adc8"
+    }
+    create_dir_all -> is_directory_writable
+    modify -> is_directory_writable
+    is_directory_writable: {
+      shape: diamond
+    }
+    # 测试完成
+    is_dir -> _.Args.base
+    is_dir -> _.Args.modify
+    is_directory_writable -> _.Args.output
   }
-  some -> clone: 条件不成立 {
-    style.stroke: "#f38ba8"
-  }
-  some -> create_or_use: 条件成立 {
-    style.stroke: "#a6e3a1"
-  }
-  create_or_use: 创建或直接使用目录
-  clone: 使用modify参数
-  create_or_use -> writable
-  clone -> writable
-  writable: 目录是否可写 {
-    shape: diamond
-  }
-  # 测试完成
-  is_dir -> _.data.base
-  is_dir -> _.data.modify
-  writable -> _.data.output
-}
-data: 内部使用参数 {
-  base: {
-    shape: stored_data
-  }
-  modify: {
-    shape: stored_data
-  }
-  output: {
-    shape: stored_data
+  Args {
+    base: "base: PathBuf" {
+      shape: stored_data
+    }
+    modify: "modify: PathBuf" {
+      shape: stored_data
+    }
+    output: "output: PathBuf" {
+      shape: stored_data
+    }
   }
 }
 
@@ -79,46 +82,87 @@ data: 内部使用参数 {
       dir_name
     }
   }
-  _.data.base -> new.read_dir {
-    style.stroke: "#f38ba8"
+  # base: PathBuf to BaseDir
+  _."args.rs".Args.base -> create_dir_struct.read_dir -> InputDir.BaseDir.files {
+    style.stroke: "#b4befe"
   }
-  _.data.base -> new."dir_path.clone" {
-    style.stroke: "#f38ba8"
+  _."args.rs".Args.base -> create_dir_struct.get_dir_name -> InputDir.BaseDir.dir_name {
+    style.stroke: "#b4befe"
   }
-  _.data.base -> new.get_dir_name {
-    style.stroke: "#f38ba8"
+  _."args.rs".Args.base -> InputDir.BaseDir.dir_path {
+    style.stroke: "#b4befe"
   }
-  _.data.modify -> new.read_dir {
+  # modify: PathBuf to ModifyDir
+  _."args.rs".Args.modify -> create_dir_struct.read_dir -> InputDir.ModifyDir.files {
+    style.stroke: "#f9e2af"
+  }
+  _."args.rs".Args.modify -> create_dir_struct.get_dir_name -> InputDir.ModifyDir.dir_name {
+    style.stroke: "#f9e2af"
+  }
+  _."args.rs".Args.modify -> InputDir.ModifyDir.dir_path {
+    style.stroke: "#f9e2af"
+  }
+  # output: PathBuf to OutputDir
+  _."args.rs".Args.output -> are_same_directory
+  are_same_directory -> InputDir.ModifyDir: Yes {
     style.stroke: "#a6e3a1"
   }
-  _.data.modify -> new."dir_path.clone" {
+  InputDir.ModifyDir -> InputDir.OutputDir: clone {
     style.stroke: "#a6e3a1"
   }
-  _.data.modify -> new.get_dir_name {
-    style.stroke: "#a6e3a1"
+  are_same_directory -> else: No {
+    source-arrowhead: 1
+    style.stroke: "#f38ba8"
   }
-  _.data.output -> new.read_dir {
-    style.stroke: "#89b4fa"
-  }
-  new {
-    read_dir -> _.InputDir.BaseDir.files {
-      style.stroke: "#f38ba8"
-    }
-    read_dir -> _.InputDir.ModifyDir.files {
-      style.stroke: "#a6e3a1"
-    }
-    read_dir -> _.InputDir.OutputDir.files {
-      style.stroke: "#89b4fa"
-    }
-    read_dir {
+  else {
+    copy {
       shape: step
     }
-    "dir_path.clone" {
-      shape: step
-    }
-    "dir_path.clone" -> get_dir_name
     get_dir_name {
       shape: step
     }
   }
+  InputDir.ModifyDir.files -> else.copy: copy {
+    source-arrowhead: 1
+    style.stroke: "#f38ba8"
+  }
+  else.copy -> InputDir.OutputDir.files {
+    style.stroke: "#f38ba8"
+  }
+  else.get_dir_name -> InputDir.OutputDir.dir_name {
+    style.stroke: "#f38ba8"
+  }
+  else -> InputDir.OutputDir.dir_path {
+    style.stroke: "#f38ba8"
+  }
+
+  create_dir_struct {
+    read_dir {
+      shape: step
+    }
+    get_dir_name {
+      shape: step
+    }
+  }
+  are_same_directory {
+    shape: diamond
+  }
+}
+# 重命名部分
+"rename.rs" {
+  _."dir.rs".InputDir.BaseDir.files -> batch_rename
+  _."dir.rs".InputDir.OutputDir.files -> batch_rename
+  batch_rename -> rename_file -> update_info
+  update_info -> batch_rename {
+    style.stroke: "#f9e2af"
+  }
+  update_info -> _."dir.rs".InputDir.OutputDir {
+    style.stroke: "#f9e2af"
+  }
+  update_info -> _.end {
+    style.stroke: "#a6e3a1"
+  }
+}
+end {
+  shape: parallelogram
 }
