@@ -52,11 +52,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "b_rename"
+name = "b_rename_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
 ]
+
+[[package]]
+name = "b_rename_core"
+version = "0.1.0"
+
+[[package]]
+name = "b_rename_gui"
+version = "0.1.0"
+
+[[package]]
+name = "b_rename_tui"
+version = "0.1.0"
 
 [[package]]
 name = "clap"

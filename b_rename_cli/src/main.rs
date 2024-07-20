@@ -1,5 +1,5 @@
-use b_rename::Args;
-use b_rename::InputDir;
+use b_rename_cli::Args;
+use b_rename_cli::InputDir;
 use std::process;
 
 fn main() {

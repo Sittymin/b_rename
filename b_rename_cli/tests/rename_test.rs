@@ -34,7 +34,7 @@ fn test_files_rename() -> io::Result<()> {
     fs::write(modify_dir.join("modify_file3.ass"), "Oh! shit!")?;
 
     let mut input_dir =
-        b_rename::InputDir::new(base_dir.clone(), modify_dir.clone(), output_dir.clone())?;
+        b_rename_cli::InputDir::new(base_dir.clone(), modify_dir.clone(), output_dir.clone())?;
     input_dir.output_rename();
     assert!(output_dir.join("file1.ass").exists());
     assert!(output_dir.join("file2.ass").exists());
