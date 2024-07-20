@@ -55,6 +55,7 @@ dependencies = [
 name = "b_rename_cli"
 version = "0.1.0"
 dependencies = [
+ "b_rename_core",
  "clap",
 ]
 

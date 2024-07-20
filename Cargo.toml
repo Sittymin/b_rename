@@ -5,3 +5,4 @@ members = [
     "b_rename_gui",
     "b_rename_tui"
 ]
+resolver = "2"

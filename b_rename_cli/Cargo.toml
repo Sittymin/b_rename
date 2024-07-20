@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+b_rename_core = { path = "../b_rename_core" }
 clap = { version = "4.5.8", features = ["derive"] }

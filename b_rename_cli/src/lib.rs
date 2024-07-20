@@ -4,6 +4,6 @@ mod error;
 mod file;
 mod rename;
 
-pub use args::Args;
+pub use args::RawArgs;
 pub use dir::InputDir;
 pub use file::File;

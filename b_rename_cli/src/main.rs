@@ -1,9 +1,9 @@
-use b_rename_cli::Args;
 use b_rename_cli::InputDir;
+use b_rename_cli::RawArgs;
 use std::process;
 
 fn main() {
-    let args = match Args::new() {
+    let args = match RawArgs::new() {
         Ok(args) => args,
         Err(e) => {
             eprintln!("{e}");
