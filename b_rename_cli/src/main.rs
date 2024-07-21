@@ -1,5 +1,5 @@
-use b_rename_cli::InputDir;
-use b_rename_cli::RawArgs;
+use b_rename_cli::args::RawArgs;
+use b_rename_core::dir::InputDir;
 use std::process;
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
             process::exit(1);
         }
     };
-    let mut input_dir = match InputDir::new(args.base, args.modify, args.output) {
+    let mut input_dir = match InputDir::new(args.base, args.modify, args.output, false) {
         Ok(input_dir) => input_dir,
         Err(e) => {
             eprintln!("{e}");

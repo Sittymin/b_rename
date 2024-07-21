@@ -1,4 +1,4 @@
-use b_rename_core;
+use b_rename_core::path::InputPath;
 
 use clap::Parser;
 use std::{io, path::PathBuf};
@@ -21,12 +21,12 @@ pub struct RawArgs {
 }
 
 impl RawArgs {
-    pub fn new() -> io::Result<b_rename_core::InputPath> {
+    pub fn new() -> io::Result<InputPath> {
         let raw_args = RawArgs::parse();
         let output = match raw_args.output {
             Some(output) => output,
             None => raw_args.modify.clone(),
         };
-        b_rename_core::InputPath::new(raw_args.base, raw_args.modify, output)
+        InputPath::new(raw_args.base, raw_args.modify, output)
     }
 }

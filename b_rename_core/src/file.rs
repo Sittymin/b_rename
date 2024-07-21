@@ -1,7 +1,5 @@
-use crate::error::FileError;
-
 use std::ffi::OsString;
-// use std::fmt::Display;
+use std::io;
 use std::path::{Path, PathBuf};
 
 pub struct File {
@@ -10,40 +8,29 @@ pub struct File {
     file_name: OsString,
     file_ext: OsString,
 }
-// impl Display for File {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         writeln!(
-//             f,
-//             "完整路径: {} | 文件名: {} | 文件后缀: {}",
-//             self.full_path.display(),
-//             self.file_name,
-//             self.file_ext
-//         )
-//     }
-// }
 impl File {
-    pub fn new(path: PathBuf) -> Result<File, FileError> {
+    pub fn new(path: PathBuf) -> io::Result<File> {
         let file_name = path
-            // 类似.gitignore的会返回全名
+            // like .gitignore returns the full name.
             .file_stem()
-            .ok_or(FileError::NameError(format!(
-                "文件名读取失败: {}",
-                path.display()
-            )))?
+            .ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("不存在文件名: {}", path.display()),
+            ))?
             .to_os_string();
 
         let file_ext = match path.extension() {
             Some(ext) => ext.to_os_string(),
             None => {
                 if let Some(name_str) = file_name.to_str() {
-                    // 检查是否是隐藏文件
+                    // like ".gitignore"
                     if name_str.starts_with(".") {
                         OsString::from(&name_str[1..])
                     } else {
                         OsString::new()
                     }
                 } else {
-                    // 转换 str 失败
+                    // conversions str fail
                     OsString::new()
                 }
             }
@@ -64,16 +51,22 @@ impl File {
     pub fn get_file_path(&self) -> &Path {
         Path::new(&self.full_path)
     }
-    pub fn update_info(&mut self, new_file: PathBuf) -> Result<(), FileError> {
+    pub fn update_info(&mut self, new_file: PathBuf) -> io::Result<()> {
         self.full_path = new_file.to_path_buf();
-        // 双重后缀可能不好用 like "1.zst.tar"
+        // like "1.zst.tar" is not will
         self.file_name = new_file
             .file_stem()
-            .ok_or(FileError::NameError("更新文件名信息时失败".to_string()))?
+            .ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("更新文件名信息失败: {}", new_file.display()),
+            ))?
             .to_os_string();
         self.file_ext = new_file
             .extension()
-            .ok_or(FileError::ExtError("更新文件后缀信息时失败".to_string()))?
+            .ok_or(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("更新文件后缀信息时失败: {}", new_file.display()),
+            ))?
             .to_os_string();
         Ok(())
     }

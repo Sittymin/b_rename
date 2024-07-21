@@ -1,7 +1,7 @@
 use std::{
     ffi::OsString,
     fs,
-    io::Result,
+    io::{self, Result},
     path::{Path, PathBuf},
 };
 
@@ -39,7 +39,10 @@ pub fn batch_rename(base_files: &[File], output_files: &mut [File]) {
 }
 fn rename_file(old_path: &Path, new_name: &OsString, new_ext: &OsString) -> Result<PathBuf> {
     // TODO: 可能需要优化不必每次求父目录
-    let parent = old_path.parent().unwrap_or(Path::new(""));
+    let parent = old_path.parent().ok_or(io::Error::new(
+        io::ErrorKind::NotFound,
+        format!("未找到父目录: {}", old_path.display()),
+    ))?;
 
     let mut new_file_name = new_name.clone();
     new_file_name.push(".");
