@@ -19,7 +19,11 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libpango1.0-dev libgtk-3-dev libglib2.0-dev
+        sudo apt-get install -y libpango1.0-dev libgtk-3-dev libglib2.0-dev libgtk-4-dev libcairo2-dev
+
+    - name: Set PKG_CONFIG_PATH
+      run: |
+        echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
 
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
@@ -46,7 +50,7 @@ jobs:
       run: cargo clippy
       continue-on-error: true
 
-    - name: Build
+    - name: Build with verbose output
       run: cargo build --verbose
 
     - name: Run tests
