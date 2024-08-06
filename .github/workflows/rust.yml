@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/gtk-rs/gtk4-rs:latest  # 使用预装最新 GTK4 的 Docker 镜像
+      image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
 
     steps:
     - uses: actions/checkout@v4
