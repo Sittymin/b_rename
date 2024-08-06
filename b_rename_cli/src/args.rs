@@ -15,6 +15,8 @@ pub struct RawArgs {
     #[arg(short = 'o', long)]
     // if none will same with modify
     output: Option<PathBuf>,
+    // TODO: add move or copy arg
+
     // TODO: if need other args
     // #[command(subcommand)]
     // pub command: Option<Command>,
