@@ -16,10 +16,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Add GNOME PPA
+    - name: Add toolchain PPA
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
-        sudo add-apt-repository ppa:gnome-team/gnome-nightly
         sudo apt-get update
 
     - name: Install dependencies
