@@ -1,7 +1,7 @@
 mod window;
 
-use gtk::prelude::*;
-use gtk::{gio, glib, Application};
+use adw::prelude::*;
+use adw::{gio, glib, Application};
 use window::Window;
 
 const APP_ID: &str = "io.github.sittymin";
@@ -24,4 +24,3 @@ fn build_ui(app: &Application) {
     let window = Window::new(app);
     window.present();
 }
-

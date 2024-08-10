@@ -5,4 +5,3 @@ fn main() {
         "b_rename.gresource",                    // 输出的 GResource 文件名
     );
 }
-

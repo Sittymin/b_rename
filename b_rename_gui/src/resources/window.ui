@@ -2,14 +2,101 @@
 <interface>
   <template class="BRenameGtkAppWindow" parent="GtkApplicationWindow">
     <property name="title">BRename</property>
+    <property name="show-menubar">false</property>
+    <!-- 暂时先禁止改变大小 --->
+    <property name="resizable">false</property>
+    <property name="default-height">720</property>
+    <property name="default-width">432</property>
     <child>
-      <object class="GtkButton" id="button">
-        <signal name="clicked" handler="handle_button_clicked"/>
-        <property name="label">按我!</property>
-        <property name="margin-top">12</property>
-        <property name="margin-bottom">12</property>
-        <property name="margin-start">12</property>
-        <property name="margin-end">12</property>  
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <child>
+              <object class="GtkButton">
+                <property name="label">取消</property>
+                <property name="width-request">86</property> <!-- 432 / 5 = 86.4 -->
+                <property name="margin-top">12</property>
+                <property name="margin-start">12</property>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <!-- 占位符 --->
+              <object class="GtkLabel">
+                <property name="hexpand">true</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label">重命名</property>
+                <property name="width-request">86</property> <!-- 432 / 5 = 86.4 -->
+                <property name="margin-top">12</property>
+                <property name="margin-end">12</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkEntry">
+            <property name="placeholder-text">文件名</property>
+            <!-- 多行文本自动截断为一行 --->
+            <property name="truncate-multiline">true</property>
+            <property name="margin-top">12</property>
+            <property name="margin-start">12</property>
+            <property name="margin-end">12</property>
+          </object>
+        </child>
+
+<child>
+  <object class="GtkStack" id="stack">
+    <property name="hexpand">true</property>
+    <property name="vexpand">true</property>
+    <property name="margin-top">12</property>
+    <!-- 会导致全部不显示？ -->
+    <!-- <property name="margin-buttom">12</property> -->
+    <property name="margin-start">12</property>
+    <property name="margin-end">12</property>
+    <child>
+      <object class="GtkStackPage">
+        <property name="name">list</property>
+        <property name="child">
+          <object class="GtkScrolledWindow">
+            <child>
+              <object class="GtkListBox" id="list_box">
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </child>
+  <!-- 列表为空时 --->
+    <child>
+      <object class="GtkStackPage">
+        <property name="name">empty</property>
+        <property name="child">
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="valign">center</property>
+            <property name="halign">center</property>
+            <child>
+              <object class="GtkButton" id="add_button">
+                <property name="label">添加项目</property>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </child>
+  </object>
+</child>
+      
       </object>
     </child>
   </template>

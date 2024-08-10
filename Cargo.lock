@@ -75,6 +75,7 @@ version = "0.1.0"
 dependencies = [
  "glib-build-tools",
  "gtk4",
+ "libadwaita",
 ]
 
 [[package]]
@@ -532,6 +533,37 @@ name = "is_terminal_polyfill"
 version = "1.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8478577c03552c21db0e2724ffb8986a5ce7af88107e6be5d2ee6e158c12800"
+
+[[package]]
+name = "libadwaita"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ff9c222b5c783729de45185f07b2fec2d43a7f9c63961e777d3667e20443878"
+dependencies = [
+ "gdk4",
+ "gio",
+ "glib",
+ "gtk4",
+ "libadwaita-sys",
+ "libc",
+ "pango",
+]
+
+[[package]]
+name = "libadwaita-sys"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c44d8bdbad31d6639e1f20cc9c1424f1a8e02d751fc28d44659bf743fb9eca6"
+dependencies = [
+ "gdk4-sys",
+ "gio-sys",
+ "glib-sys",
+ "gobject-sys",
+ "gtk4-sys",
+ "libc",
+ "pango-sys",
+ "system-deps",
+]
 
 [[package]]
 name = "libc"
