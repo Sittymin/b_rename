@@ -3,7 +3,7 @@
   <template class="BRenameGtkAppWindow" parent="GtkApplicationWindow">
     <property name="title">BRename</property>
     <property name="show-menubar">false</property>
-    <!-- 暂时先禁止改变大小 --->
+    <!-- 暂时先禁止改变大小 -->
     <property name="resizable">false</property>
     <property name="default-height">720</property>
     <property name="default-width">432</property>
@@ -25,7 +25,7 @@
               </object>
             </child>
             <child>
-              <!-- 占位符 --->
+              <!-- 占位符 -->
               <object class="GtkLabel">
                 <property name="hexpand">true</property>
               </object>
@@ -46,7 +46,7 @@
         <child>
           <object class="GtkEntry">
             <property name="placeholder-text">文件名</property>
-            <!-- 多行文本自动截断为一行 --->
+            <!-- 多行文本自动截断为一行 -->
             <property name="truncate-multiline">true</property>
             <property name="margin-top">12</property>
             <property name="margin-start">12</property>
@@ -76,7 +76,7 @@
         </property>
       </object>
     </child>
-  <!-- 列表为空时 --->
+  <!-- 列表为空时 -->
     <child>
       <object class="GtkStackPage">
         <property name="name">empty</property>
