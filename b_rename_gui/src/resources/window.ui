@@ -57,44 +57,105 @@
         </child>
 
 <child>
-  <object class="GtkStack" id="stack">
-    <property name="hexpand">true</property>
-    <property name="vexpand">true</property>
+  <object class="GtkBox">
+    <property name="orientation">horizontal</property>
     <property name="margin-top">12</property>
-    <!-- 会导致全部不显示？ -->
-    <!-- <property name="margin-buttom">12</property> -->
+    <property name="margin-bottom">12</property>
     <property name="margin-start">12</property>
     <property name="margin-end">12</property>
-  <!-- 列表为空时 -->
     <child>
-      <object class="GtkStackPage">
-        <property name="name">empty</property>
-        <property name="child">
-          <object class="GtkBox">
-            <property name="orientation">vertical</property>
-            <property name="valign">center</property>
-            <property name="halign">center</property>
+      <!-- 用于添加一个阴影效果 -->
+      <object class="GtkFrame">
+        <style>
+          <class name="content-frame"/>
+        </style>
+        <child>
+          <object class="GtkStack" id="left_stack">
+            <property name="hexpand">true</property>
+            <property name="vexpand">true</property>
+          <!-- 列表为空时 -->
             <child>
-              <object class="GtkButton" id="add_button">
-                <signal name="clicked" handler="add_button_clicked" swapped="true"/>
-                <property name="label">添加项目</property>
+              <object class="GtkStackPage">
+                <property name="name">empty</property>
+                <property name="child">
+                  <!-- 为了按钮居中 -->
+                  <object class="GtkBox">
+                    <property name="orientation">horizontal</property>
+                    <property name="valign">center</property>
+                    <property name="halign">center</property>
+                    <child>
+                      <object class="GtkButton" id="add_base_dir_button">
+                        <signal name="clicked" handler="add_button_clicked" swapped="true"/>
+                        <property name="name">add_base_dir_button</property>
+                        <property name="label">添加基准文件夹</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">list</property>
+                <property name="child">
+                  <object class="GtkScrolledWindow">
+                    <child>
+                      <object class="GtkListBox" id="left_list_box">
+                      </object>
+                    </child>
+                  </object>
+                </property>
               </object>
             </child>
           </object>
-        </property>
+        </child>
       </object>
     </child>
     <child>
-      <object class="GtkStackPage">
-        <property name="name">list</property>
-        <property name="child">
-          <object class="GtkScrolledWindow">
+    <!-- 用于添加一个阴影效果 -->
+    <object class="GtkFrame">
+        <style>
+          <class name="content-frame"/>
+        </style>
+        <child>
+          <object class="GtkStack" id="right_stack">
+            <property name="hexpand">true</property>
+            <property name="vexpand">true</property>
+          <!-- 列表为空时 -->
             <child>
-              <object class="GtkListBox" id="list_box">
+              <object class="GtkStackPage">
+                <property name="name">empty</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="orientation">horizontal</property>
+                    <property name="valign">center</property>
+                    <property name="halign">center</property>
+                    <child>
+                      <object class="GtkButton" id="add_modify_dir_button">
+                        <signal name="clicked" handler="add_button_clicked" swapped="true"/>
+                        <property name="name">add_modify_dir_button</property>
+                        <property name="label">添加修改文件夹</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">list</property>
+                <property name="child">
+                  <object class="GtkScrolledWindow">
+                    <child>
+                      <object class="GtkListBox" id="right_list_box">
+                      </object>
+                    </child>
+                  </object>
+                </property>
               </object>
             </child>
           </object>
-        </property>
+        </child>
       </object>
     </child>
   </object>

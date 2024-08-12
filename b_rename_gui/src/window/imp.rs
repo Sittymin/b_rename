@@ -7,7 +7,14 @@ use gtk::{glib, CompositeTemplate};
 // Object holding the state
 #[derive(CompositeTemplate, Default)]
 #[template(resource = "/io/github/sittymin/b_rename/window.ui")]
-pub struct Window {}
+pub struct Window {
+    // 字段名要是 UI 文件中的 id
+    // TemplateChild 表示在初始化之后才可访问
+    #[template_child]
+    pub left_stack: TemplateChild<gtk::Stack>,
+    #[template_child]
+    pub right_stack: TemplateChild<gtk::Stack>,
+}
 
 // The central trait for subclassing a GObject
 #[glib::object_subclass]
@@ -43,6 +50,14 @@ impl Window {
         let obj = self.obj();
         let window = obj.upcast_ref::<gtk::Window>();
 
+        // 确定是哪个按钮被点击
+        println!("当前点击按钮的name：{}", button.widget_name());
+        let stack = if button.widget_name() == "add_base_dir_button" {
+            self.left_stack.get()
+        } else {
+            self.right_stack.get()
+        };
+
         button.set_label("正在选择文件...");
         window.set_sensitive(false); // 禁用整个窗口
 
@@ -66,8 +81,10 @@ impl Window {
 
             match result {
                 Ok(file) => {
-                    println!("选择的文件是: {:?}", file);
+                    println!("选择的文件是路径是: {:?}", file.path());
                     button.set_label("载入文件中...");
+
+                    stack.set_visible_child_name("list");
                 }
                 Err(err) => {
                     eprintln!("选择文件时发生错误: {err}");
