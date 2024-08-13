@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+b_rename_core = { path = "../b_rename_core" }
 adw = { version = "0.7.0", package = "libadwaita", features = ["v1_5"] }
 gdk = { version = "0.9.0", package = "gdk4", features = ["v4_14"] }
 gtk = { version = "0.9.0", package = "gtk4", features = ["v4_14"] }

@@ -8,6 +8,25 @@ pub struct Dir {
     pub dir_path: PathBuf,
     pub dir_name: OsString,
 }
+
+impl Dir {
+    pub fn new(dir_path: PathBuf) -> Self {
+        let files = read_dir(&dir_path).unwrap_or_else(|e| {
+            eprintln!("读取目录发生错误: {e}");
+            Vec::new()
+        });
+        let dir_name = get_dir_name(&dir_path);
+        Dir {
+            files,
+            dir_path,
+            dir_name,
+        }
+    }
+    pub fn get_files_name(&self) -> Vec<&OsString> {
+        self.files.iter().map(|file| file.get_file_name()).collect()
+    }
+}
+
 pub struct InputDir {
     pub base_dir: Dir,
     // modify_dir: Dir,
@@ -16,13 +35,11 @@ pub struct InputDir {
 
 impl InputDir {
     pub fn new(
-        base_dir_path: PathBuf,
-        modify_dir_path: PathBuf,
+        base_dir: Dir,
+        modify_dir: Dir,
         output_dir_path: PathBuf,
         is_move: bool,
     ) -> io::Result<Self> {
-        let base_dir = create_dir_struct(base_dir_path);
-        let modify_dir = create_dir_struct(modify_dir_path);
         let output_dir = if are_same_directory(&modify_dir.dir_path, &output_dir_path)? {
             Dir {
                 files: modify_dir.files.clone(),
@@ -74,19 +91,6 @@ impl InputDir {
     }
     pub fn output_rename(&mut self) {
         batch_rename(&self.base_dir.files, &mut self.output_dir.files);
-    }
-}
-
-fn create_dir_struct(dir_path: PathBuf) -> Dir {
-    let files = read_dir(&dir_path).unwrap_or_else(|e| {
-        eprintln!("读取目录发生错误: {e}");
-        Vec::new()
-    });
-    let dir_name = get_dir_name(&dir_path);
-    Dir {
-        files,
-        dir_path,
-        dir_name,
     }
 }
 

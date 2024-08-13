@@ -4,6 +4,9 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{glib, CompositeTemplate};
 
+use b_rename_core::dir::InputDir;
+
+
 // Object holding the state
 #[derive(CompositeTemplate, Default)]
 #[template(resource = "/io/github/sittymin/b_rename/window.ui")]

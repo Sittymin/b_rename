@@ -73,6 +73,7 @@ version = "0.1.0"
 name = "b_rename_gui"
 version = "0.1.0"
 dependencies = [
+ "b_rename_core",
  "gdk4",
  "glib-build-tools",
  "gtk4",
