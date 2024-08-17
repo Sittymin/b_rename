@@ -4,8 +4,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{glib, CompositeTemplate};
 
-use b_rename_core::dir::InputDir;
-
+use b_rename_core::dir::{Dir, InputDir};
 
 // Object holding the state
 #[derive(CompositeTemplate, Default)]
@@ -73,7 +72,7 @@ impl Window {
         let weak_window = window.downgrade();
         let weak_button = button.downgrade();
 
-        file_dialog.open(Some(window), gio::Cancellable::NONE, move |result| {
+        file_dialog.select_folder(Some(window), gio::Cancellable::NONE, move |result| {
             // 升级为强引用
             let Some(window) = weak_window.upgrade() else {
                 return;
@@ -84,10 +83,15 @@ impl Window {
 
             match result {
                 Ok(file) => {
-                    println!("选择的文件是路径是: {:?}", file.path());
-                    button.set_label("载入文件中...");
+                    if let Some(path) = file.path() {
+                        println!("选择的文件是路径是: {:?}", file.path());
+                        button.set_label("载入文件中...");
+                        let base_dir = Dir::new(path);
+                        println!("Dir 结构体为: {:#?}", base_dir);
 
-                    stack.set_visible_child_name("list");
+                        stack.set_visible_child_name("list");
+                    } else {
+                    }
                 }
                 Err(err) => {
                     eprintln!("选择文件时发生错误: {err}");

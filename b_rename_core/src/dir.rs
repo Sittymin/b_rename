@@ -3,6 +3,7 @@ use crate::{file::File, rename::batch_rename};
 use core::panic;
 use std::{ffi::OsString, fs, io, path::PathBuf};
 
+#[derive(Debug)]
 pub struct Dir {
     pub files: Vec<File>,
     pub dir_path: PathBuf,

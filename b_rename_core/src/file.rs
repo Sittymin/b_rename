@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::io;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub struct File {
     // Will be modified
     full_path: PathBuf,

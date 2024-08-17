@@ -100,7 +100,7 @@
                 <property name="child">
                   <object class="GtkScrolledWindow">
                     <child>
-                      <object class="GtkListBox" id="left_list_box">
+                      <object class="GtkListView" id="left_list">
                       </object>
                     </child>
                   </object>
@@ -147,7 +147,7 @@
                 <property name="child">
                   <object class="GtkScrolledWindow">
                     <child>
-                      <object class="GtkListBox" id="right_list_box">
+                      <object class="GtkListView" id="right_list">
                       </object>
                     </child>
                   </object>
