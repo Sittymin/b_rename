@@ -1,3 +1,4 @@
+use glib::clone;
 use glib::subclass::InitializingObject;
 use gtk::gio;
 use gtk::prelude::*;
@@ -16,6 +17,10 @@ pub struct Window {
     pub left_stack: TemplateChild<gtk::Stack>,
     #[template_child]
     pub right_stack: TemplateChild<gtk::Stack>,
+    #[template_child]
+    pub left_list: TemplateChild<gtk::ListView>,
+    #[template_child]
+    pub right_list: TemplateChild<gtk::ListView>,
 }
 
 // The central trait for subclassing a GObject
@@ -35,7 +40,84 @@ impl ObjectSubclass for Window {
         obj.init_template();
     }
 }
+impl Window {
+    fn init_list_view(&self, list: &gtk::ListView) {
+        // 创建数据
+        let model = gtk::StringList::new(&[]);
+        let factory = gtk::SignalListItemFactory::new();
 
+        // 初始化显示方式
+        factory.connect_setup(move |_, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+
+            let box_ = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+            let label = gtk::Label::new(None);
+            let copy_button = gtk::Button::with_label("复制");
+            let delete_button = gtk::Button::with_label("删除");
+
+            label.set_hexpand(true);
+            label.set_halign(gtk::Align::Start);
+
+            box_.append(&label);
+            box_.append(&copy_button);
+            box_.append(&delete_button);
+            list_item.set_child(Some(&box_));
+        });
+
+        // 滚动，更新列表时的重新渲染各个列表项
+        factory.connect_bind(move |_, list_item| {
+            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+
+            let box_ = list_item.child().unwrap().downcast::<gtk::Box>().unwrap();
+            let label = box_
+                .first_child()
+                .unwrap()
+                .downcast::<gtk::Label>()
+                .unwrap();
+            let copy_button = box_
+                .first_child()
+                .unwrap()
+                // 下一个
+                .next_sibling()
+                .unwrap()
+                .downcast::<gtk::Button>()
+                .unwrap();
+            let delete_button = box_
+                .last_child()
+                .unwrap()
+                .downcast::<gtk::Button>()
+                .unwrap();
+
+            let file_name = list_item
+                .item()
+                .unwrap()
+                .downcast::<gtk::StringObject>()
+                .unwrap();
+
+            label.set_label(&file_name.string());
+
+            // 设置复制按钮的点击事件
+            copy_button.connect_clicked(clone!(@weak file_name => move |_| {
+                let clipboard = gdk::Display::default().unwrap().clipboard();
+                clipboard.set_text(&file_name.string());
+            }));
+
+            // 设置删除按钮的点击事件
+            // delete_button.connect_clicked(clone!(@weak list_item, @weak model => move |_| {
+            //     let position = list_item.position();
+            //     model.remove(position);
+            // }));
+        });
+
+        // 创建选择包含容器
+        let selection_model = gtk::SingleSelection::new(Some(model));
+        // 设置最终 List
+        list.set_model(Some(&selection_model));
+        list.set_factory(Some(&factory));
+    }
+}
+
+// 回调部分
 #[gtk::template_callbacks]
 impl Window {
     #[template_callback]
@@ -54,10 +136,10 @@ impl Window {
 
         // 确定是哪个按钮被点击
         println!("当前点击按钮的name：{}", button.widget_name());
-        let stack = if button.widget_name() == "add_base_dir_button" {
-            self.left_stack.get()
+        let (stack, is_left_stack) = if button.widget_name() == "add_base_dir_button" {
+            (self.left_stack.get(), true)
         } else {
-            self.right_stack.get()
+            (self.right_stack.get(), false)
         };
 
         button.set_label("正在选择文件...");
@@ -84,10 +166,17 @@ impl Window {
             match result {
                 Ok(file) => {
                     if let Some(path) = file.path() {
-                        println!("选择的文件是路径是: {:?}", file.path());
+                        println!("选择的目录是路径是: {:?}", file.path());
                         button.set_label("载入文件中...");
-                        let base_dir = Dir::new(path);
-                        println!("Dir 结构体为: {:#?}", base_dir);
+
+                        let dir = Dir::new(path);
+
+                        if is_left_stack {
+                            println!("is left");
+                            // TODO: 使用 ListView.model.append 类似的添加数据吧
+                        } else {
+                            println!("is right");
+                        }
 
                         stack.set_visible_child_name("list");
                     } else {
@@ -104,8 +193,14 @@ impl Window {
 }
 
 // Trait shared by all GObjects
-impl ObjectImpl for Window {}
-
+impl ObjectImpl for Window {
+    fn constructed(&self) {
+        self.parent_constructed();
+        // 初始化列表
+        self.init_list_view(&self.left_list.get());
+        self.init_list_view(&self.right_list.get());
+    }
+}
 // Trait shared by all widgets
 impl WidgetImpl for Window {}
 
