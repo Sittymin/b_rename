@@ -1,4 +1,3 @@
-use glib::clone;
 use glib::subclass::InitializingObject;
 use gtk::gio;
 use gtk::prelude::*;
@@ -97,12 +96,18 @@ impl Window {
             label.set_label(&file_name.string());
 
             // 设置复制按钮的点击事件
-            copy_button.connect_clicked(clone!(@weak file_name => move |_| {
-                let clipboard = gdk::Display::default().unwrap().clipboard();
-                clipboard.set_text(&file_name.string());
-            }));
+            copy_button.connect_clicked(move |_| {
+                let file_name = file_name.clone();
+                if let Some(display) = gdk::Display::default() {
+                    let clipboard = display.clipboard();
+                    clipboard.set_text(&file_name.string());
+                } else {
+                    eprintln!("无法获取剪贴板");
+                    // TODO: 显示一个Dialog
+                }
+            });
 
-            // 设置删除按钮的点击事件
+            // TODO: 设置删除按钮的点击事件
             // delete_button.connect_clicked(clone!(@weak list_item, @weak model => move |_| {
             //     let position = list_item.position();
             //     model.remove(position);
@@ -130,56 +135,67 @@ impl Window {
     }
     #[template_callback]
     fn add_button_clicked(&self, button: &gtk::Button) {
-        // 创建一个更长生命周期的绑定
         let obj = self.obj();
         let window = obj.upcast_ref::<gtk::Window>();
 
-        // 确定是哪个按钮被点击
         println!("当前点击按钮的name：{}", button.widget_name());
-        let (stack, is_left_stack) = if button.widget_name() == "add_base_dir_button" {
-            (self.left_stack.get(), true)
+        // 提前将结构体子段提取，避免生命周期问题
+        let (stack, list) = if button.widget_name() == "add_base_dir_button" {
+            (self.left_stack.clone(), self.left_list.clone())
         } else {
-            (self.right_stack.get(), false)
+            (self.right_stack.clone(), self.right_list.clone())
         };
 
         button.set_label("正在选择文件...");
-        window.set_sensitive(false); // 禁用整个窗口
+        window.set_sensitive(false);
 
         let file_dialog = gtk::FileDialog::builder()
             .title("选择文件或目录")
             .accept_label("确认")
             .build();
 
-        // 创建窗口的弱引用
         let weak_window = window.downgrade();
         let weak_button = button.downgrade();
+        let weak_stack = stack.downgrade();
+        let weak_list = list.downgrade();
 
         file_dialog.select_folder(Some(window), gio::Cancellable::NONE, move |result| {
-            // 升级为强引用
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
             let Some(button) = weak_button.upgrade() else {
                 return;
             };
+            let Some(stack) = weak_stack.upgrade() else {
+                return;
+            };
+            let Some(list) = weak_list.upgrade() else {
+                return;
+            };
 
             match result {
                 Ok(file) => {
                     if let Some(path) = file.path() {
-                        println!("选择的目录是路径是: {:?}", file.path());
+                        println!("选择的目录是路径是: {:?}", path);
                         button.set_label("载入文件中...");
 
                         let dir = Dir::new(path);
 
-                        if is_left_stack {
-                            println!("is left");
-                            // TODO: 使用 ListView.model.append 类似的添加数据吧
-                        } else {
-                            println!("is right");
-                        }
+                        list.model()
+                            .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
+                            .and_then(|selection_model| selection_model.model())
+                            .and_then(|model| model.downcast::<gtk::StringList>().ok())
+                            .map(|string_list| {
+                                for file_name in dir.get_files_name() {
+                                    let file_name = file_name.to_string_lossy().into_owned();
+                                    string_list.append(&file_name);
+                                }
+                            })
+                            .unwrap_or_else(|| {
+                                eprintln!("无法获取或处理列表模型");
+                            });
 
                         stack.set_visible_child_name("list");
-                    } else {
                     }
                 }
                 Err(err) => {
@@ -187,7 +203,7 @@ impl Window {
                     button.set_label("添加项目");
                 }
             }
-            window.set_sensitive(true); // 重新启用窗口
+            window.set_sensitive(true);
         });
     }
 }
