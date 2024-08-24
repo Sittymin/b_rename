@@ -1,3 +1,15 @@
+/* 嵌套的加载动画旋转 */
+/* button_content.add_css_class("loading-icon"); */
+.loading-icon image {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* .content-frame { */
 /* border-radius: 4px; */
 /* background-color: red; */

@@ -51,8 +51,9 @@ impl Window {
 
             let box_ = gtk::Box::new(gtk::Orientation::Horizontal, 6);
             let label = gtk::Label::new(None);
-            let copy_button = gtk::Button::with_label("复制");
-            let delete_button = gtk::Button::with_label("删除");
+
+            let copy_button = gtk::Button::from_icon_name("edit-copy-symbolic");
+            let delete_button = gtk::Button::from_icon_name("user-trash-symbolic");
 
             label.set_hexpand(true);
             label.set_halign(gtk::Align::Start);
@@ -138,7 +139,9 @@ impl Window {
         let obj = self.obj();
         let window = obj.upcast_ref::<gtk::Window>();
 
-        println!("当前点击按钮的name：{}", button.widget_name());
+        // 存储 child 之后用来还原用(后续已经不可用child)
+        let before_button_child = button.child();
+
         // 提前将结构体子段提取，避免生命周期问题
         let (stack, list) = if button.widget_name() == "add_base_dir_button" {
             (self.left_stack.clone(), self.left_list.clone())
@@ -146,7 +149,12 @@ impl Window {
             (self.right_stack.clone(), self.right_list.clone())
         };
 
-        button.set_label("正在选择文件...");
+        let button_content = adw::ButtonContent::new();
+        button_content.set_icon_name("process-working-symbolic");
+        button_content.add_css_class("loading-icon");
+        button_content.set_label("选择文件中...");
+        button.set_child(Some(&button_content));
+        // 冻结窗口
         window.set_sensitive(false);
 
         let file_dialog = gtk::FileDialog::builder()
@@ -199,8 +207,13 @@ impl Window {
                     }
                 }
                 Err(err) => {
-                    eprintln!("选择文件时发生错误: {err}");
-                    button.set_label("添加项目");
+                    println!("{:?}", err);
+                    if let Some(child) = before_button_child {
+                        button.set_child(Some(&child));
+                    } else {
+                        button.set_child(None::<&gtk::Widget>);
+                        eprintln!("代码逻辑错误");
+                    }
                 }
             }
             window.set_sensitive(true);

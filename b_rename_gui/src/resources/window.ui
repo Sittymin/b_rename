@@ -84,10 +84,16 @@
                     <property name="valign">center</property>
                     <property name="halign">center</property>
                     <child>
+                      <!-- 参考: https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/class.ButtonContent.html -->
                       <object class="GtkButton" id="add_base_dir_button">
                         <signal name="clicked" handler="add_button_clicked" swapped="true"/>
-                        <property name="name">add_base_dir_button</property>
-                        <property name="label">添加基准文件夹</property>
+                        <property name="child">
+                          <object class="AdwButtonContent">
+                            <property name="icon-name">document-open-symbolic</property>
+                            <property name="label" translatable="yes">添加基准文件夹</property>
+                            <property name="use-underline">True</property>
+                          </object>
+                        </property>
                       </object>
                     </child>
                   </object>
@@ -133,9 +139,15 @@
                     <child>
                       <object class="GtkButton" id="add_modify_dir_button">
                         <signal name="clicked" handler="add_button_clicked" swapped="true"/>
-                        <property name="name">add_modify_dir_button</property>
-                        <property name="label">添加修改文件夹</property>
+                        <property name="child">
+                          <object class="AdwButtonContent">
+                            <property name="icon-name">document-open-symbolic</property>
+                            <property name="label" translatable="yes">添加修改文件夹</property>
+                            <property name="use-underline">True</property>
+                          </object>
+                        </property>
                       </object>
+
                     </child>
                   </object>
                 </property>
