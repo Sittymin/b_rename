@@ -4,7 +4,37 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{glib, CompositeTemplate};
 
-use b_rename_core::dir::{Dir, InputDir};
+use b_rename_core::dir::Dir;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+pub struct GUIData {
+    base_dir: Option<Dir>,
+    output_dir: Option<Dir>,
+}
+
+impl GUIData {
+    fn set_base_dir(&mut self, dir: Dir) {
+        self.base_dir = Some(dir);
+    }
+    fn set_output_dir(&mut self, dir: Dir) {
+        self.output_dir = Some(dir);
+    }
+    fn check_data(&self) -> bool {
+        match (&self.base_dir, &self.output_dir) {
+            (Some(_), Some(_)) => true,
+            _ => false,
+        }
+    }
+}
+impl Default for GUIData {
+    fn default() -> Self {
+        Self {
+            base_dir: None,
+            output_dir: None,
+        }
+    }
+}
 
 // Object holding the state
 #[derive(CompositeTemplate, Default)]
@@ -20,6 +50,8 @@ pub struct Window {
     pub left_list: TemplateChild<gtk::ListView>,
     #[template_child]
     pub right_list: TemplateChild<gtk::ListView>,
+
+    pub gui_data: Rc<RefCell<GUIData>>,
 }
 
 // The central trait for subclassing a GObject
@@ -109,10 +141,7 @@ impl Window {
             });
 
             // TODO: 设置删除按钮的点击事件
-            // delete_button.connect_clicked(clone!(@weak list_item, @weak model => move |_| {
-            //     let position = list_item.position();
-            //     model.remove(position);
-            // }));
+            delete_button.connect_clicked(move |_| print!("待办"));
         });
 
         // 创建选择包含容器
@@ -132,7 +161,13 @@ impl Window {
     }
     #[template_callback]
     fn start_rename(&self, _button: &gtk::Button) {
-        println!("好像开始重命名了");
+        if self.gui_data.borrow().check_data() {
+            println!("数据检查通过");
+            // 进行重命名操作
+        } else {
+            println!("数据检查未通过");
+            // 可能需要显示错误信息或进行其他处理
+        }
     }
     #[template_callback]
     fn add_button_clicked(&self, button: &gtk::Button) {
@@ -143,10 +178,10 @@ impl Window {
         let before_button_child = button.child();
 
         // 提前将结构体子段提取，避免生命周期问题
-        let (stack, list) = if button.widget_name() == "add_base_dir_button" {
-            (self.left_stack.clone(), self.left_list.clone())
-        } else {
-            (self.right_stack.clone(), self.right_list.clone())
+        let (stack, list, is_left_box) = match button.widget_name().as_str() {
+            "add_base_dir_button" => (self.left_stack.get(), self.left_list.get(), true),
+            "add_modify_dir_button" => (self.right_stack.get(), self.right_list.get(), false),
+            _ => panic!("Unexpected button name: {}", button.widget_name()),
         };
 
         let button_content = adw::ButtonContent::new();
@@ -167,56 +202,73 @@ impl Window {
         let weak_stack = stack.downgrade();
         let weak_list = list.downgrade();
 
+        // 数据弱引用
+        let weak_gui_data = Rc::downgrade(&self.gui_data);
+
         file_dialog.select_folder(Some(window), gio::Cancellable::NONE, move |result| {
-            let Some(window) = weak_window.upgrade() else {
-                return;
-            };
-            let Some(button) = weak_button.upgrade() else {
-                return;
-            };
-            let Some(stack) = weak_stack.upgrade() else {
-                return;
-            };
-            let Some(list) = weak_list.upgrade() else {
-                return;
-            };
+            if let Some(gui_data) = weak_gui_data.upgrade() {
+                let mut gui_data = gui_data.borrow_mut();
+                let Some(window) = weak_window.upgrade() else {
+                    return;
+                };
+                let Some(button) = weak_button.upgrade() else {
+                    return;
+                };
+                let Some(stack) = weak_stack.upgrade() else {
+                    return;
+                };
+                let Some(list) = weak_list.upgrade() else {
+                    return;
+                };
 
-            match result {
-                Ok(file) => {
-                    if let Some(path) = file.path() {
-                        println!("选择的目录是路径是: {:?}", path);
-                        button.set_label("载入文件中...");
+                match result {
+                    Ok(file) => {
+                        if let Some(path) = file.path() {
+                            println!("选择的目录是路径是: {:?}", path);
+                            button.set_label("载入文件中...");
 
-                        let dir = Dir::new(path);
+                            // 存储获得的数据
+                            let dir: &Dir;
+                            if is_left_box {
+                                gui_data.set_base_dir(Dir::new(path));
+                                dir = gui_data.base_dir.as_ref().expect("未能初始化self.base_dir");
+                            } else {
+                                gui_data.set_output_dir(Dir::new(path));
+                                dir = gui_data
+                                    .output_dir
+                                    .as_ref()
+                                    .expect("未能初始化self.output_dir")
+                            }
 
-                        list.model()
-                            .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
-                            .and_then(|selection_model| selection_model.model())
-                            .and_then(|model| model.downcast::<gtk::StringList>().ok())
-                            .map(|string_list| {
-                                for file_name in dir.get_files_name() {
-                                    let file_name = file_name.to_string_lossy().into_owned();
-                                    string_list.append(&file_name);
-                                }
-                            })
-                            .unwrap_or_else(|| {
-                                eprintln!("无法获取或处理列表模型");
-                            });
+                            list.model()
+                                .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
+                                .and_then(|selection_model| selection_model.model())
+                                .and_then(|model| model.downcast::<gtk::StringList>().ok())
+                                .map(|string_list| {
+                                    for file_name in dir.get_files_name() {
+                                        let file_name = file_name.to_string_lossy().into_owned();
+                                        string_list.append(&file_name);
+                                    }
+                                })
+                                .unwrap_or_else(|| {
+                                    eprintln!("无法获取或处理列表模型");
+                                });
 
-                        stack.set_visible_child_name("list");
+                            stack.set_visible_child_name("list");
+                        }
+                    }
+                    Err(err) => {
+                        println!("{:?}", err);
+                        if let Some(child) = before_button_child {
+                            button.set_child(Some(&child));
+                        } else {
+                            button.set_child(None::<&gtk::Widget>);
+                            eprintln!("代码逻辑错误");
+                        }
                     }
                 }
-                Err(err) => {
-                    println!("{:?}", err);
-                    if let Some(child) = before_button_child {
-                        button.set_child(Some(&child));
-                    } else {
-                        button.set_child(None::<&gtk::Widget>);
-                        eprintln!("代码逻辑错误");
-                    }
-                }
+                window.set_sensitive(true);
             }
-            window.set_sensitive(true);
         });
     }
 }

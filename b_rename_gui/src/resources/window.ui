@@ -85,8 +85,11 @@
                     <property name="halign">center</property>
                     <child>
                       <!-- 参考: https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/class.ButtonContent.html -->
+                      <!-- CSS 使用的是id -->
                       <object class="GtkButton" id="add_base_dir_button">
                         <signal name="clicked" handler="add_button_clicked" swapped="true"/>
+                        <!-- widget_name() 使用的是下列这行 -->
+                        <property name="name">add_base_dir_button</property>
                         <property name="child">
                           <object class="AdwButtonContent">
                             <property name="icon-name">document-open-symbolic</property>
@@ -139,6 +142,7 @@
                     <child>
                       <object class="GtkButton" id="add_modify_dir_button">
                         <signal name="clicked" handler="add_button_clicked" swapped="true"/>
+                        <property name="name">add_modify_dir_button</property>
                         <property name="child">
                           <object class="AdwButtonContent">
                             <property name="icon-name">document-open-symbolic</property>
