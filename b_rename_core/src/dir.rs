@@ -26,6 +26,16 @@ impl Dir {
     pub fn get_files_name(&self) -> Vec<&OsString> {
         self.files.iter().map(|file| file.get_file_name()).collect()
     }
+    pub fn get_files_full_name(&self) -> Vec<&OsString> {
+        self.files
+            .iter()
+            .map(|file| file.get_file_full_name())
+            .collect()
+    }
+    pub fn sort_files_by_name_unstable(&mut self) {
+        self.files
+            .sort_unstable_by_key(|file| file.get_file_name().clone());
+    }
 }
 
 pub struct InputDir {

@@ -7,6 +7,7 @@ pub struct File {
     // Will be modified
     full_path: PathBuf,
     file_name: OsString,
+    file_full_name: OsString,
     file_ext: OsString,
 }
 impl File {
@@ -36,15 +37,22 @@ impl File {
                 }
             }
         };
+        let mut file_full_name = OsString::from(file_name.clone());
+        file_full_name.push(".");
+        file_full_name.push(file_ext.clone());
 
         Ok(File {
             full_path: path,
             file_name,
+            file_full_name,
             file_ext,
         })
     }
     pub fn get_file_name(&self) -> &OsString {
         &self.file_name
+    }
+    pub fn get_file_full_name(&self) -> &OsString {
+        &self.file_full_name
     }
     pub fn get_file_ext(&self) -> &OsString {
         &self.file_ext
@@ -77,6 +85,7 @@ impl Clone for File {
         File {
             full_path: self.full_path.clone(),
             file_name: self.file_name.clone(),
+            file_full_name: self.file_full_name.clone(),
             file_ext: self.file_ext.clone(),
         }
     }

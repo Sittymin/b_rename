@@ -89,6 +89,8 @@ impl Window {
 
             label.set_hexpand(true);
             label.set_halign(gtk::Align::Start);
+            // 超出范围是文本的省略位置
+            label.set_ellipsize(gdk::pango::EllipsizeMode::Middle);
 
             box_.append(&label);
             box_.append(&copy_button);
@@ -228,16 +230,16 @@ impl Window {
                             button.set_label("载入文件中...");
 
                             // 存储获得的数据
-                            let dir: &Dir;
+                            let dir: &mut Dir;
                             if is_left_box {
                                 gui_data.set_base_dir(Dir::new(path));
-                                dir = gui_data.base_dir.as_ref().expect("未能初始化self.base_dir");
+                                dir = gui_data.base_dir.as_mut().expect("未能初始化self.base_dir");
                             } else {
                                 gui_data.set_output_dir(Dir::new(path));
                                 dir = gui_data
                                     .output_dir
-                                    .as_ref()
-                                    .expect("未能初始化self.output_dir")
+                                    .as_mut()
+                                    .expect("未能初始化self.output_dir");
                             }
 
                             list.model()
@@ -245,8 +247,15 @@ impl Window {
                                 .and_then(|selection_model| selection_model.model())
                                 .and_then(|model| model.downcast::<gtk::StringList>().ok())
                                 .map(|string_list| {
-                                    for file_name in dir.get_files_name() {
-                                        let file_name = file_name.to_string_lossy().into_owned();
+                                    dir.sort_files_by_name_unstable();
+                                    let file_names: Vec<String> = dir
+                                        .get_files_full_name()
+                                        .into_iter()
+                                        .map(|file_name| file_name.to_string_lossy().into_owned())
+                                        .collect();
+
+                                    // 添加进列表
+                                    for file_name in file_names.iter() {
                                         string_list.append(&file_name);
                                     }
                                 })
