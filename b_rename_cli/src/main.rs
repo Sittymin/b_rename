@@ -15,14 +15,15 @@ fn main() {
     base_dir.sort_files_by_name_unstable();
     modify_dir.sort_files_by_name_unstable();
 
-    let mut input_dir = match InputDir::new(base_dir, modify_dir, args.output, false) {
-        Ok(input_dir) => input_dir,
+    let mut input_dir = InputDir::new(base_dir, modify_dir);
+    // println!("{input_dir}");
+    // 重命名
+    match input_dir.output_rename(args.output, false) {
+        Ok(_) => (),
         Err(e) => {
             eprintln!("{e}");
+            // TEMP: if get this need back to set dir
             process::exit(1);
         }
     };
-    // println!("{input_dir}");
-    // 重命名
-    input_dir.output_rename();
 }

@@ -37,26 +37,45 @@ impl Dir {
             .sort_unstable_by_key(|file| file.get_file_name().clone());
     }
 }
+impl Clone for Dir {
+    fn clone(&self) -> Self {
+        Dir {
+            files: self.files.clone(),
+            dir_path: self.dir_path.clone(),
+            dir_name: self.dir_name.clone(),
+        }
+    }
+}
 
 pub struct InputDir {
-    pub base_dir: Dir,
-    // modify_dir: Dir,
-    pub output_dir: Dir,
+    base_dir: Dir,
+    modify_dir: Dir,
+    output_dir: Option<Dir>,
 }
 
 impl InputDir {
-    pub fn new(
-        base_dir: Dir,
-        modify_dir: Dir,
-        output_dir_path: PathBuf,
-        is_move: bool,
-    ) -> io::Result<Self> {
-        let output_dir = if are_same_directory(&modify_dir.dir_path, &output_dir_path)? {
-            Dir {
-                files: modify_dir.files.clone(),
-                dir_path: modify_dir.dir_path.clone(),
-                dir_name: modify_dir.dir_name.clone(),
-            }
+    pub fn new(base_dir: Dir, modify_dir: Dir) -> Self {
+        Self {
+            base_dir,
+            modify_dir,
+            output_dir: None,
+        }
+    }
+    pub fn set_base_dir(&mut self, dir: Dir) {
+        self.base_dir = dir;
+    }
+    pub fn set_modify_dir(&mut self, dir: Dir) {
+        self.modify_dir = dir;
+    }
+    pub fn output_rename(&mut self, output_dir_path: PathBuf, is_move: bool) -> io::Result<()> {
+        // check and move file to output dir
+        self.output_dir = if are_same_directory(&self.modify_dir.dir_path, &output_dir_path)? {
+            // use clone because modify_dir may be useful in further
+            Some(Dir {
+                files: self.modify_dir.files.clone(),
+                dir_path: self.modify_dir.dir_path.clone(),
+                dir_name: self.modify_dir.dir_name.clone(),
+            })
         } else {
             // create a new Dir struct
             let mut output_dir = Dir {
@@ -66,42 +85,50 @@ impl InputDir {
             };
 
             // copy or move files to new dir
-            for file in &modify_dir.files {
-                // file_name like file.ass
-                let file_name = file.get_file_path().file_name().unwrap();
-                let output_file_path = output_dir.dir_path.join(PathBuf::from(file_name));
-                if is_move {
-                    fs::rename(file.get_file_path(), &output_file_path).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::PermissionDenied,
-                            format!("无法移动文件, 可能是权限问题: {e}"),
-                        )
-                    })?;
+            for file in &self.modify_dir.files {
+                if let Some(file_name) = file.get_file_path().file_name() {
+                    let output_file_path = output_dir.dir_path.join(file_name);
+                    let operation_result = if is_move {
+                        fs::rename(file.get_file_path(), &output_file_path)
+                    } else {
+                        fs::copy(file.get_file_path(), &output_file_path).map(|_| ())
+                    };
+
+                    match operation_result {
+                        Ok(_) => {
+                            let output_file = File::new(output_file_path)?;
+                            output_dir.files.push(output_file);
+                        }
+                        Err(e) => {
+                            eprintln!("文件操作失败: {e}, 文件: {:?}", file.get_file_path());
+                            return Err(e);
+                        }
+                    }
                 } else {
-                    fs::copy(file.get_file_path(), &output_file_path).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::PermissionDenied,
-                            format!("无法复制到指定目录, 可能是权限问题: {e}"),
-                        )
-                    })?;
+                    eprintln!("无法获取文件名: {:?}", file.get_file_path());
                 }
-                // create File struct to Dir.files
-                let output_file = File::new(output_file_path)
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                output_dir.files.push(output_file);
             }
 
-            output_dir
+            Some(output_dir)
         };
 
-        Ok(Self {
-            base_dir,
-            // modify_dir,
-            output_dir,
-        })
-    }
-    pub fn output_rename(&mut self) {
-        batch_rename(&self.base_dir.files, &mut self.output_dir.files);
+        // start rename
+        if self.base_dir.files.len()
+            == self
+                .output_dir
+                .as_ref()
+                .expect("output_dir未初始化，程序逻辑错误")
+                .files
+                .len()
+        {
+            batch_rename(
+                &self.base_dir.files,
+                &mut self.output_dir.as_mut().unwrap().files,
+            );
+        } else {
+            eprintln!("重命名文件数量不一致，取消重命名");
+        }
+        Ok(())
     }
 }
 

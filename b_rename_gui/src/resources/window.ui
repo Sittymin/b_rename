@@ -46,6 +46,7 @@
           </object>
         </child>
         <child>
+          <!-- need imp in core -->
           <object class="GtkEntry">
             <property name="placeholder-text">文件名</property>
             <!-- 多行文本自动截断为一行 -->

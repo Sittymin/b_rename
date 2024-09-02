@@ -43,9 +43,8 @@ fn test_files_rename(is_move: bool) -> io::Result<()> {
 
     let base_dir = b_rename_core::dir::Dir::new(base_dir_path.clone());
     let modify_dir = b_rename_core::dir::Dir::new(modify_dir_path.clone());
-    let mut input_dir =
-        b_rename_core::dir::InputDir::new(base_dir, modify_dir, output_dir_path.clone(), is_move)?;
-    input_dir.output_rename();
+    let mut input_dir = b_rename_core::dir::InputDir::new(base_dir, modify_dir);
+    input_dir.output_rename(output_dir_path.clone(), is_move)?;
     assert!(output_dir_path.join("file1.ass").exists());
     assert!(output_dir_path.join("file2.ass").exists());
     assert!(output_dir_path.join("file3.ass").exists());

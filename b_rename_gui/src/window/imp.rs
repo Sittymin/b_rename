@@ -1,13 +1,16 @@
+use b_rename_core::dir::InputDir;
 use glib::subclass::InitializingObject;
 use gtk::gio;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{glib, CompositeTemplate};
+use std::process;
 
 use b_rename_core::dir::Dir;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub struct GUIData {
     base_dir: Option<Dir>,
     output_dir: Option<Dir>,
@@ -20,10 +23,11 @@ impl GUIData {
     fn set_output_dir(&mut self, dir: Dir) {
         self.output_dir = Some(dir);
     }
-    fn check_data(&self) -> bool {
+    fn check_get_data(&self) -> Option<Self> {
         match (&self.base_dir, &self.output_dir) {
-            (Some(_), Some(_)) => true,
-            _ => false,
+            // may be need in gui? can't move out
+            (Some(_), Some(_)) => Some(self.clone()),
+            _ => None,
         }
     }
 }
@@ -32,6 +36,14 @@ impl Default for GUIData {
         Self {
             base_dir: None,
             output_dir: None,
+        }
+    }
+}
+impl Clone for GUIData {
+    fn clone(&self) -> Self {
+        GUIData {
+            base_dir: self.base_dir.clone(),
+            output_dir: self.output_dir.clone(),
         }
     }
 }
@@ -50,6 +62,10 @@ pub struct Window {
     pub left_list: TemplateChild<gtk::ListView>,
     #[template_child]
     pub right_list: TemplateChild<gtk::ListView>,
+    #[template_child]
+    pub add_base_dir_button: TemplateChild<gtk::Button>,
+    #[template_child]
+    pub add_modify_dir_button: TemplateChild<gtk::Button>,
 
     pub gui_data: Rc<RefCell<GUIData>>,
 }
@@ -163,12 +179,40 @@ impl Window {
     }
     #[template_callback]
     fn start_rename(&self, _button: &gtk::Button) {
-        if self.gui_data.borrow().check_data() {
-            println!("数据检查通过");
-            // 进行重命名操作
-        } else {
-            println!("数据检查未通过");
-            // 可能需要显示错误信息或进行其他处理
+        // TODO: Need imp Same Dir file rename
+        match self.gui_data.borrow().check_get_data() {
+            Some(data) => {
+                if let (Some(base_dir), Some(modify_dir)) = (data.base_dir, data.output_dir) {
+                    let output_dir_path = modify_dir.dir_path.clone();
+                    let mut input_dir = InputDir::new(base_dir, modify_dir);
+                    match input_dir.output_rename(output_dir_path, false) {
+                        Ok(_) => {
+                            self.right_stack.get().set_visible_child_name("empty");
+
+                            let button_content = adw::ButtonContent::new();
+                            button_content.set_icon_name("document-open-symbolic");
+                            // button_content.add_css_class("loading-icon");
+                            button_content.set_label("添加修改文件夹");
+                            self.add_modify_dir_button
+                                .get()
+                                .set_child(Some(&button_content));
+
+                            let alert = gtk::AlertDialog::builder()
+                                .message("操作已完成")
+                                .modal(true)
+                                .build();
+
+                            alert.show(Some(self.obj().upcast_ref::<gtk::Window>()));
+                        }
+                        Err(e) => {
+                            eprintln!("{e}");
+                            // TEMP: if get this need back to set dir
+                            process::exit(1);
+                        }
+                    };
+                }
+            }
+            _ => eprintln!("No Full Gui Data!"),
         }
     }
     #[template_callback]
@@ -227,7 +271,6 @@ impl Window {
                     Ok(file) => {
                         if let Some(path) = file.path() {
                             println!("选择的目录是路径是: {:?}", path);
-                            button.set_label("载入文件中...");
 
                             // 存储获得的数据
                             let dir: &mut Dir;
