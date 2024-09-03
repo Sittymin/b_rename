@@ -1,166 +1,116 @@
 user: 用户输入 {
   shape: person
 }
-user -> cli_arg
-cli_arg {
-  base
-  modify
-  output
+user -> get_dir
+get_dir {
+  cli
+  gui
+  tui
 }
 
-cli_arg.base -> "args.rs".args_new.exists
-cli_arg.modify -> "args.rs".args_new.exists
-cli_arg.output -> "args.rs".args_new.some
+get_dir -> "Dir::new": dir_path
 
-"args.rs" {
-  args_new {
-    exists {
-      shape: diamond
-    }
-    exists -> is_dir
-
-    is_dir {
-      shape: diamond
-    }
-    # output 部分
-
-    some: "Some(output) & !=modify & !=base" {
-      shape: diamond
-    }
-    some -> modify: No {
-      style.stroke: "#f38ba8"
-    }
-    some -> create_dir_all: Yes {
-      style.stroke: "#a6e3a1"
-    }
-    modify <-> _._.cli_arg.modify: Same {
-      style.stroke: "#a6adc8"
-    }
-    create_dir_all -> is_directory_writable
-    modify -> is_directory_writable
-    is_directory_writable: {
-      shape: diamond
-    }
-    # 测试完成
-    is_dir -> _.Args.base
-    is_dir -> _.Args.modify
-    is_directory_writable -> _.Args.output
-  }
-  Args {
-    base: "base: PathBuf" {
-      shape: stored_data
-    }
-    modify: "modify: PathBuf" {
-      shape: stored_data
-    }
-    output: "output: PathBuf" {
-      shape: stored_data
-    }
-  }
-}
-
-# 目录部分
-"dir.rs" {
-  InputDir {
+"Dir::new" {
+  read_dir -> Dir.files
+  get_dir_name -> Dir.dir_name
+  Dir {
     shape: stored_data
-    BaseDir {
-      shape: stored_data
-      files
-      dir_path
-      dir_name
-    }
-    ModifyDir {
-      shape: stored_data
-      files
-      dir_path
-      dir_name
-    }
-    OutputDir {
-      shape: stored_data
-      files
-      dir_path
-      dir_name
-    }
-  }
-  # base: PathBuf to BaseDir
-  _."args.rs".Args.base -> create_dir_struct.read_dir -> InputDir.BaseDir.files {
-    style.stroke: "#b4befe"
-  }
-  _."args.rs".Args.base -> create_dir_struct.get_dir_name -> InputDir.BaseDir.dir_name {
-    style.stroke: "#b4befe"
-  }
-  _."args.rs".Args.base -> InputDir.BaseDir.dir_path {
-    style.stroke: "#b4befe"
-  }
-  # modify: PathBuf to ModifyDir
-  _."args.rs".Args.modify -> create_dir_struct.read_dir -> InputDir.ModifyDir.files {
-    style.stroke: "#f9e2af"
-  }
-  _."args.rs".Args.modify -> create_dir_struct.get_dir_name -> InputDir.ModifyDir.dir_name {
-    style.stroke: "#f9e2af"
-  }
-  _."args.rs".Args.modify -> InputDir.ModifyDir.dir_path {
-    style.stroke: "#f9e2af"
-  }
-  # output: PathBuf to OutputDir
-  _."args.rs".Args.output -> are_same_directory
-  are_same_directory -> InputDir.ModifyDir: Yes {
-    style.stroke: "#a6e3a1"
-  }
-  InputDir.ModifyDir -> InputDir.OutputDir: clone {
-    style.stroke: "#a6e3a1"
-  }
-  are_same_directory -> else: No {
-    source-arrowhead: 1
-    style.stroke: "#f38ba8"
-  }
-  else {
-    copy {
-      shape: step
-    }
-    get_dir_name {
-      shape: step
-    }
-  }
-  InputDir.ModifyDir.files -> else.copy: copy {
-    source-arrowhead: 1
-    style.stroke: "#f38ba8"
-  }
-  else.copy -> InputDir.OutputDir.files {
-    style.stroke: "#f38ba8"
-  }
-  else.get_dir_name -> InputDir.OutputDir.dir_name {
-    style.stroke: "#f38ba8"
-  }
-  else -> InputDir.OutputDir.dir_path {
-    style.stroke: "#f38ba8"
-  }
-
-  create_dir_struct {
-    read_dir {
-      shape: step
-    }
-    get_dir_name {
-      shape: step
-    }
-  }
-  are_same_directory {
-    shape: diamond
+    files
+    dir_name
+    dir_path
   }
 }
+
+"Dir::new".Dir -> "InputDir::new": sort_files_by_name_unstable
+
+"InputDir::new" {
+  shape: stored_data
+  BaseDir {
+    shape: stored_data
+    files
+    dir_path
+    dir_name
+  }
+  ModifyDir {
+    shape: stored_data
+    files
+    dir_path
+    dir_name
+  }
+  OutputDir {
+    shape: stored_data
+    None
+  }
+}
+
+"InputDir::new" -> output_rename
+user -> output_rename: output_path
+user -> output_rename: is_move
+
+output_rename -> are_same_directory
+are_same_directory {
+  shape: diamond
+}
+are_same_directory -> "InputDir::new".ModifyDir: modify_dir {
+  style.stroke: "#a6e3a1"
+}
+"InputDir::new".ModifyDir -> "InputDir::new".OutputDir: clone {
+  style.stroke: "#a6e3a1"
+}
+are_same_directory -> else: modify_and_output_path {
+  source-arrowhead: 1
+  style.stroke: "#f38ba8"
+}
+else {
+  creat_output_dir {
+    shape: step
+  }
+  get_dir_name {
+    shape: step
+  }
+}
+"InputDir::new".ModifyDir.files -> else.creat_output_dir: copy_or_move {
+  source-arrowhead: 1
+  style.stroke: "#f38ba8"
+}
+
+OutputDir {
+  shape: stored_data
+}
+else.creat_output_dir -> OutputDir.files {
+  style.stroke: "#f38ba8"
+}
+else.get_dir_name -> OutputDir.dir_name {
+  style.stroke: "#f38ba8"
+}
+else -> OutputDir.dir_path {
+  style.stroke: "#f38ba8"
+}
+
+# transport data
+OutputDir -> "rename.rs".same_len {
+  style.stroke: "#f38ba8"
+}
+"InputDir::new".OutputDir -> "rename.rs".same_len: clone {
+  style.stroke: "#a6e3a1"
+}
+"InputDir::new".ModifyDir -> "rename.rs".batch_rename
+
 # 重命名部分
 "rename.rs" {
-  _."dir.rs".InputDir.BaseDir.files -> batch_rename
-  _."dir.rs".InputDir.OutputDir.files -> batch_rename
-  batch_rename -> rename_file -> update_info
-  update_info -> batch_rename {
-    style.stroke: "#f9e2af"
+  same_len {
+    shape: diamond
   }
-  update_info -> _."dir.rs".InputDir.OutputDir {
+  same_len -> batch_rename
+  batch_rename -> rename_file -> update_info
+  update_info -> _."InputDir::new".OutputDir {
     style.stroke: "#f9e2af"
   }
   update_info -> _.end {
-    style.stroke: "#a6e3a1"
+    style.stroke: "#f38ba8"
+  }
+  same_len-> _.end {
+    style.stroke: "#f38ba8"
   }
 }
 end {
