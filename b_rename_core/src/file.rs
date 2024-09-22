@@ -23,7 +23,7 @@ impl File {
 
         let file_ext = match path.extension() {
             Some(ext) => ext.to_os_string(),
-            None => {
+            _ => {
                 if let Some(name_str) = file_name.to_str() {
                     // like ".gitignore"
                     if name_str.starts_with(".") {

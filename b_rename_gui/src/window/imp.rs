@@ -94,25 +94,72 @@ impl Window {
         let factory = gtk::SignalListItemFactory::new();
 
         // 初始化显示方式
-        factory.connect_setup(move |_, list_item| {
-            let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
+        factory.connect_setup(glib::clone!(
+            #[weak(rename_to = obj)]
+            self,
+            #[weak]
+            list,
+            move |_, list_item| {
+                let list_item = list_item.downcast_ref::<gtk::ListItem>().unwrap();
 
-            let box_ = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-            let label = gtk::Label::new(None);
+                let box_ = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+                let label = gtk::Label::new(None);
 
-            let copy_button = gtk::Button::from_icon_name("edit-copy-symbolic");
-            let delete_button = gtk::Button::from_icon_name("user-trash-symbolic");
+                let copy_button = gtk::Button::from_icon_name("edit-copy-symbolic");
+                let delete_button = gtk::Button::from_icon_name("user-trash-symbolic");
 
-            label.set_hexpand(true);
-            label.set_halign(gtk::Align::Start);
-            // 超出范围是文本的省略位置
-            label.set_ellipsize(gdk::pango::EllipsizeMode::Middle);
+                label.set_hexpand(true);
+                label.set_halign(gtk::Align::Start);
+                // 超出范围文本的省略位置
+                label.set_ellipsize(gdk::pango::EllipsizeMode::Middle);
 
-            box_.append(&label);
-            box_.append(&copy_button);
-            box_.append(&delete_button);
-            list_item.set_child(Some(&box_));
-        });
+                box_.append(&label);
+                box_.append(&copy_button);
+                box_.append(&delete_button);
+                list_item.set_child(Some(&box_));
+
+                // 拖动逻辑
+                // 为列表视图添加 DropTarget, 外部文件拖入
+                let drop_target =
+                    gtk::DropTarget::new(gio::File::static_type(), gdk::DragAction::COPY);
+                drop_target.connect_drop(glib::clone!(
+                    #[weak]
+                    obj,
+                    #[weak]
+                    list,
+                    #[upgrade_or]
+                    false,
+                    move |_, value, _, _| {
+                        if let Ok(file) = value.get::<gio::File>() {
+                            if let Some(path) = file.path() {
+                                let mut gui_data = obj.gui_data.borrow_mut();
+                                let dir = if list == obj.left_list.get() {
+                                    gui_data.base_dir.as_mut().unwrap()
+                                } else {
+                                    gui_data.output_dir.as_mut().unwrap()
+                                };
+
+                                match dir.add_new_file(path) {
+                                    Ok(()) => {
+                                        update_list_ui(&list, dir);
+                                        true
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Error: {e}");
+                                        false
+                                    }
+                                }
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    }
+                ));
+                list.add_controller(drop_target);
+            }
+        ));
 
         // 滚动，更新列表时的重新渲染各个列表项
         factory.connect_bind(move |_, list_item| {
@@ -243,85 +290,103 @@ impl Window {
             .accept_label("确认")
             .build();
 
-        let weak_window = window.downgrade();
-        let weak_button = button.downgrade();
-        let weak_stack = stack.downgrade();
-        let weak_list = list.downgrade();
+        file_dialog.select_folder(
+            Some(window),
+            gio::Cancellable::NONE,
+            glib::clone!(
+                #[weak]
+                window,
+                #[weak]
+                button,
+                #[weak]
+                stack,
+                #[weak]
+                list,
+                #[weak(rename_to = gui_data)]
+                self.gui_data,
+                #[upgrade_or]
+                return,
+                move |result| {
+                    let mut gui_data = gui_data.borrow_mut();
 
-        // 数据弱引用
-        let weak_gui_data = Rc::downgrade(&self.gui_data);
+                    match result {
+                        Ok(file) => {
+                            if let Some(path) = file.path() {
+                                println!("选择的目录是路径是: {:?}", path);
 
-        file_dialog.select_folder(Some(window), gio::Cancellable::NONE, move |result| {
-            if let Some(gui_data) = weak_gui_data.upgrade() {
-                let mut gui_data = gui_data.borrow_mut();
-                let Some(window) = weak_window.upgrade() else {
-                    return;
-                };
-                let Some(button) = weak_button.upgrade() else {
-                    return;
-                };
-                let Some(stack) = weak_stack.upgrade() else {
-                    return;
-                };
-                let Some(list) = weak_list.upgrade() else {
-                    return;
-                };
+                                // 存储获得的数据
+                                let dir: &mut Dir;
+                                if is_left_box {
+                                    gui_data.set_base_dir(Dir::new(path));
+                                    dir = gui_data
+                                        .base_dir
+                                        .as_mut()
+                                        .expect("未能初始化self.base_dir");
+                                } else {
+                                    gui_data.set_output_dir(Dir::new(path));
+                                    dir = gui_data
+                                        .output_dir
+                                        .as_mut()
+                                        .expect("未能初始化self.output_dir");
+                                }
 
-                match result {
-                    Ok(file) => {
-                        if let Some(path) = file.path() {
-                            println!("选择的目录是路径是: {:?}", path);
+                                list.model()
+                                    .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
+                                    .and_then(|selection_model| selection_model.model())
+                                    .and_then(|model| model.downcast::<gtk::StringList>().ok())
+                                    .map(|string_list| {
+                                        dir.sort_files_by_name_unstable();
+                                        let file_names: Vec<String> = dir
+                                            .get_files_full_name()
+                                            .into_iter()
+                                            .map(|file_name| {
+                                                file_name.to_string_lossy().into_owned()
+                                            })
+                                            .collect();
 
-                            // 存储获得的数据
-                            let dir: &mut Dir;
-                            if is_left_box {
-                                gui_data.set_base_dir(Dir::new(path));
-                                dir = gui_data.base_dir.as_mut().expect("未能初始化self.base_dir");
-                            } else {
-                                gui_data.set_output_dir(Dir::new(path));
-                                dir = gui_data
-                                    .output_dir
-                                    .as_mut()
-                                    .expect("未能初始化self.output_dir");
+                                        // 添加进列表
+                                        for file_name in file_names.iter() {
+                                            string_list.append(&file_name);
+                                        }
+                                    })
+                                    .unwrap_or_else(|| {
+                                        eprintln!("无法获取或处理列表模型");
+                                    });
+
+                                stack.set_visible_child_name("list");
                             }
-
-                            list.model()
-                                .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
-                                .and_then(|selection_model| selection_model.model())
-                                .and_then(|model| model.downcast::<gtk::StringList>().ok())
-                                .map(|string_list| {
-                                    dir.sort_files_by_name_unstable();
-                                    let file_names: Vec<String> = dir
-                                        .get_files_full_name()
-                                        .into_iter()
-                                        .map(|file_name| file_name.to_string_lossy().into_owned())
-                                        .collect();
-
-                                    // 添加进列表
-                                    for file_name in file_names.iter() {
-                                        string_list.append(&file_name);
-                                    }
-                                })
-                                .unwrap_or_else(|| {
-                                    eprintln!("无法获取或处理列表模型");
-                                });
-
-                            stack.set_visible_child_name("list");
+                        }
+                        Err(err) => {
+                            println!("{:?}", err);
+                            if let Some(child) = before_button_child {
+                                button.set_child(Some(&child));
+                            } else {
+                                button.set_child(None::<&gtk::Widget>);
+                                eprintln!("代码逻辑错误");
+                            }
                         }
                     }
-                    Err(err) => {
-                        println!("{:?}", err);
-                        if let Some(child) = before_button_child {
-                            button.set_child(Some(&child));
-                        } else {
-                            button.set_child(None::<&gtk::Widget>);
-                            eprintln!("代码逻辑错误");
-                        }
-                    }
+                    window.set_sensitive(true);
                 }
-                window.set_sensitive(true);
-            }
-        });
+            ),
+        );
+    }
+}
+
+fn update_list_ui(list: &gtk::ListView, dir: &Dir) {
+    if let Some(string_list) = list
+        .model()
+        .and_then(|model| model.downcast::<gtk::SingleSelection>().ok())
+        .and_then(|selection_model| selection_model.model())
+        .and_then(|model| model.downcast::<gtk::StringList>().ok())
+    {
+        let file_names = dir.get_files_full_name();
+        let str_slice: Vec<&str> = file_names
+            .iter()
+            .map(|os_string| os_string.to_str().unwrap_or("此文件名转换失败"))
+            .collect();
+
+        string_list.splice(0, string_list.n_items(), &str_slice);
     }
 }
 

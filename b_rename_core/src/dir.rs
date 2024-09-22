@@ -6,6 +6,8 @@ use std::{ffi::OsString, fs, io, path::PathBuf};
 #[derive(Debug)]
 pub struct Dir {
     pub files: Vec<File>,
+    // Only use in init InputDir, compare output_dir and modify_dir is same or not
+    // WARN: add_new_file is not in dir
     pub dir_path: PathBuf,
     pub dir_name: OsString,
 }
@@ -31,6 +33,12 @@ impl Dir {
             .iter()
             .map(|file| file.get_file_full_name())
             .collect()
+    }
+    pub fn add_new_file(&mut self, file_path: PathBuf) -> io::Result<()> {
+        // TIP: this is not in work dir
+        let new_file: File = File::new(file_path)?;
+        self.files.push(new_file);
+        Ok(())
     }
     pub fn sort_files_by_name_unstable(&mut self) {
         self.files
